@@ -1,22 +1,22 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int expand = 0;
-bool exists = false;
-vector<vector<vector<int>>> repeat = {{{0}}};
-int queue_sz = 0;
+int expand = 0; //keeps track of total expansions
+bool exists = false; //tells whether a repeat exists
+vector<vector<vector<int>>> repeat = {{{0}}}; //holds repeated configurations
+int queue_sz = 0; //holds recorded max queue size
 
 //TREE NODE STRUCTURE
 struct node{
     vector<vector<int>> config = {{0}};
     int blankr; //the blank row number
     int blankc; //blank column number
-    int dp; //depth of the current node in the tree
+    int dp; //depth of the current node in the tree, equivalent to cost to get to the node from the root
     int h = 0; //misplaced tile count 
     int f = 0; //heuristic
 };
 
-struct less_than{//struct to be used in order to create 
+struct less_than{//struct to be used in order to create priority queue
   inline bool operator() (node* item1, node* item2){
       return (item1->f < item2->f);
   }
@@ -24,7 +24,7 @@ struct less_than{//struct to be used in order to create
 
 node* Make_Node(vector<vector<int>>, int dep);
 
-queue<node*> sort_q(queue<node*> q){//helper funtion to sort the queue into a prioirity queue based on heuristic value
+queue<node*> sort_q(queue<node*> q){//helper funtion to sort the queue into a prioirity queue based on heuristic value and cost to node
 
   vector<node*> temp;
   queue<node*> n;
@@ -34,7 +34,7 @@ queue<node*> sort_q(queue<node*> q){//helper funtion to sort the queue into a pr
     q.pop();
   }
 
-  sort(temp.begin(),temp.end(), less_than());
+  sort(temp.begin(),temp.end(), less_than());//using std sort algorithm to sort nodes by heuristic value
 
   for(int i = 0; i < temp.size(); ++i){
       n.push(temp.at(i));
@@ -44,13 +44,13 @@ queue<node*> sort_q(queue<node*> q){//helper funtion to sort the queue into a pr
 }
 
 
-//ARCHITECTURE OF THE PROBLEM FIXME FINISH OPERATOR IMPLENTATION
+//ARCHITECTURE OF THE PROBLEM
 struct problem{ 
       
     vector<vector<int>> initial_state = {{0}}; 
 
     //Operators
-    vector<vector<int>> move_up(node* n){
+    vector<vector<int>> move_up(node* n){//return a config with blank swapped with value above it
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -61,7 +61,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_down(node* n){
+    vector<vector<int>> move_down(node* n){//return a config with blank swapped with value below
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -72,7 +72,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_left(node* n){
+    vector<vector<int>> move_left(node* n){//return a config with blank swapped with value to the left
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -83,7 +83,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_right(node* n){
+    vector<vector<int>> move_right(node* n){//return a config with blank swapped with value to the right
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -106,7 +106,8 @@ struct problem{
 //EXPAND 
 queue<node*> Expand(node* n,problem p){
   queue<node*> q;
-  ++expand;
+  ++expand; //increment expansion
+  //creates possible children based on blank position
   if(n->blankr == 0){ //top row
     if(n->blankc == 0){
        q.push(Make_Node(p.move_down(n),n->dp));
@@ -168,17 +169,17 @@ queue<node*> Expand(node* n,problem p){
   return q;
 }
 
-//UNIFORM COST SEARCH IMPLEMENTATION
+//A* SEARCH IMPLEMENTATION
 queue<node*> Queueing_Function(queue<node*> q, queue<node*> add_on){
 
   while(!add_on.empty()){ //adds the expanded nodes to the back of the main frontier queue
     for(int i = repeat.size() - 1; i > -1; --i){ 
-      if(repeat.at(i) == add_on.front()->config){
+      if(repeat.at(i) == add_on.front()->config){ //check for repeated states
         exists = true;
         break;
       }
     }
-    if(!exists){
+    if(!exists){ //if the current node in question is not a repeat
       q.push(add_on.front());
       repeat.push_back(add_on.front()->config);
     }
@@ -202,11 +203,11 @@ node* Make_Node(vector<vector<int>> start, int dep){
       {7,8,0}
     };
 
-    node1->config = start; //set new node's config to 
+    node1->config = start; //set new node's config 
     node1->dp = dep + 1; //adds one to the parent depth to get the child depth
     node1->h = 0;
 
-    for(int k = 0; k < 3; ++k){ //for loops for calculated the misplaced tile heuristic
+    for(int k = 0; k < 3; ++k){ //for loops for calculating the misplaced tile heuristic
       for(int l = 0; l < 3; ++l){
         if(node1->config[k][l] != goal[k][l]){
           ++node1->h;
@@ -214,7 +215,7 @@ node* Make_Node(vector<vector<int>> start, int dep){
       }
     }
     
-    node1->f = node1->h + node1->dp;
+    node1->f = node1->h + node1->dp; //add cost to get to node with misplaced tile amount to get heuristic
     
     for(int i = 0; i < 3; ++i){ //for loops for tracking the blank's position
       for(int j = 0; j < 3; ++j){
@@ -231,7 +232,6 @@ node* Make_Node(vector<vector<int>> start, int dep){
 
 //MAKE QUEUE FUNCTION
 queue<node*> Make_Queue(node* start){
-    
     queue<node*> q;
     q.push(start);
     return q;
@@ -244,12 +244,12 @@ void generic_search(problem p1){
   repeat.push_back(p1.initial_state);
   
   while(1){ //loop of actual search
-    if(frontier.empty()){
+    if(frontier.empty()){ //failure condition
       printf("FAILURE, NO SOLUTION EXISTS\n");
       return;
     }
     
-    node* n = Make_Node(frontier.front()->config,frontier.front()->dp - 1); //copy potential expanded node and decrement its depth bc makenode adds one
+    node* n = Make_Node(frontier.front()->config,frontier.front()->dp - 1); //copy potential expanded node and decrement its depth because makenode adds one
     if(frontier.size() > queue_sz){ //check the size of the queue to update the maximum size
       queue_sz = frontier.size();
     }
@@ -263,7 +263,7 @@ void generic_search(problem p1){
       return;
     }
       printf("Expanding node at depth %d with h(n) = %d configuration: \n{%d,%d,%d},\n{%d,%d,%d},\n{%d,%d,%d}\n", n->dp, n->h, n->config[0][0], n->config[0][1], n->config[0][2], n->config[1][0], n->config[1][1], n->config[1][2], n->config[2][0], n->config[2][1],n->config[2][2]);
-      frontier = sort_q(Queueing_Function(frontier, Expand(n,p1)));
+      frontier = sort_q(Queueing_Function(frontier, Expand(n,p1))); //sort the returned expanded queue to get a priority queue
     //delete[] n; //done with temp variable n to hold frontier front node to be expanded
   }
 
@@ -272,7 +272,75 @@ void generic_search(problem p1){
 
 int main(){
   
-  problem problem1;
+  problem problem1; //uncomment a problem state to test or create an additonal starting state
+  
+  char input = 'a';
+  char input1, input2, input3, input4, input5, input6, input7, input8, input9;
+  int num = 0;
+  vector<vector<int>> custom = {
+        {1,2,3},
+        {4,5,6},
+        {7,8,0}
+      };
+
+  printf("Welcome to my 8-puzzle solver A* Misplaced Tile Edition, Type '1' to use a default puzzle, or type '2' to create your own:\n");
+  scanf("%c", &input);
+  
+  num = input - '0';
+
+
+  if(num == 1){
+    printf("You have chosen a default puzzle with solution at depth 8: ");
+      problem1.initial_state =  {
+        {1,3,6},
+        {5,0,2},
+        {4,7,8}
+      };
+  }
+
+  else if(num == 2){
+    printf("You have chosen a custom puzzle.\n");
+    
+    printf("Please enter a valid number for row 1 column 1:\n");
+    cin >> input1;
+    custom.at(0).at(0) = input1 - '0';
+
+    printf("Please enter a valid number for row 1 column 2:\n");
+    cin >> input2;
+    custom.at(0).at(1) = input2 - '0';
+
+    printf("Please enter a valid number for row 1 column 3:\n");
+    cin >> input3;
+    custom.at(0).at(2) = input3 - '0';
+    
+    printf("Please enter a valid number for row 2 column 1:\n");
+    cin >> input4;
+    custom.at(1).at(0) = input4 - '0';
+    
+    printf("Please enter a valid number for row 2 column 2:\n");
+    cin >> input5;
+    custom.at(1).at(1) = input5 - '0';
+
+    printf("Please enter a valid number for row 2 column 3:\n");
+    cin >> input6;
+    custom.at(1).at(2) = input6 - '0';
+
+    printf("Please enter a valid number for row 3 column 1:\n");
+    cin >> input7;
+    custom.at(2).at(0) = input7 - '0';
+
+    printf("Please enter a valid number for row 3 column 2:\n");
+    cin >> input8;
+    custom.at(2).at(1) = input8 - '0';
+
+    printf("Please enter a valid number for row 3 column 3:\n");
+    cin >> input9;
+    custom.at(2).at(2) = input9 - '0';
+
+  }
+
+  problem1.initial_state =  custom;
+  
   // problem1.initial_state =  {
   //   {1,2,3},
   //   {4,5,6},
@@ -315,15 +383,15 @@ int main(){
 //     {6,3,0}
 //   };
 
-problem1.initial_state =  {
-    {0,7,2},
-    {4,6,1},
-    {3,5,8}
-  };
+// problem1.initial_state =  { 
+//     {0,7,2},
+//     {4,6,1},
+//     {3,5,8}
+//   };
 
 
 
-  generic_search(problem1);
+  generic_search(problem1); //call search alorithm
 
 
   return 0;

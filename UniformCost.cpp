@@ -1,10 +1,10 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int expand = 0;
-bool exists = false;
-vector<vector<vector<int>>> repeat = {{{0}}};
-int queue_sz = 0;
+int expand = 0; //keeps track of total expansions
+bool exists = false; //tells whether a repeat exists
+vector<vector<vector<int>>> repeat = {{{0}}}; //holds repeated configurations
+int queue_sz = 0; //holds recorded max queue size
 
 //TREE NODE STRUCTURE
 struct node{
@@ -14,16 +14,16 @@ struct node{
     int dp; //depth of the current node in the tree
 };
 
-node* Make_Node(vector<vector<int>>, int dep);
+node* Make_Node(vector<vector<int>>, int dep); //function declaration
 
 
-//ARCHITECTURE OF THE PROBLEM FIXME FINISH OPERATOR IMPLENTATION
+//ARCHITECTURE OF THE PROBLEM
 struct problem{ 
       
     vector<vector<int>> initial_state = {{0}}; 
 
     //Operators
-    vector<vector<int>> move_up(node* n){
+    vector<vector<int>> move_up(node* n){//return a config with blank swapped with value above it
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -34,7 +34,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_down(node* n){
+    vector<vector<int>> move_down(node* n){//return a config with blank swapped with value below it
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -45,7 +45,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_left(node* n){
+    vector<vector<int>> move_left(node* n){//return a config with blank swapped with value to the left
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -56,7 +56,7 @@ struct problem{
 
       return temp0;
     }
-    vector<vector<int>> move_right(node* n){
+    vector<vector<int>> move_right(node* n){//return a config with blank swapped with value to the right
       int temp1;
       
       vector<vector<int>>temp0 = n->config;
@@ -76,10 +76,11 @@ struct problem{
 
 };
 
-//EXPAND FIXME 
+//EXPAND
 queue<node*> Expand(node* n,problem p){
   queue<node*> q;
-  ++expand;
+  ++expand; //increment expansion
+  //creates possible children based on blank position
   if(n->blankr == 0){ //top row
     if(n->blankc == 0){
        q.push(Make_Node(p.move_down(n),n->dp));
@@ -145,13 +146,13 @@ queue<node*> Expand(node* n,problem p){
 queue<node*> Queueing_Function(queue<node*> q, queue<node*> add_on){
 
   while(!add_on.empty()){ //adds the expanded nodes to the back of the main frontier queue
-    for(int i = repeat.size() - 1; i > -1; --i){ 
+    for(int i = repeat.size() - 1; i > -1; --i){ //check for repeated states
       if(repeat.at(i) == add_on.front()->config){
         exists = true;
         break;
       }
     }
-    if(!exists){
+    if(!exists){ //if the current node in question is not a repeat
       q.push(add_on.front());
       repeat.push_back(add_on.front()->config);
     }
@@ -167,11 +168,12 @@ node* Make_Node(vector<vector<int>> start, int dep){
 
     node* node1 = new node;
 
-    node1->config = start; //set new node's config to 
+    node1->config = start; //set new node's config
     node1->dp = dep + 1; //adds one to the parent depth to get the child depth
-    for(int i = 0; i < 3; ++i){
+    
+    for(int i = 0; i < 3; ++i){//locates the blank positon in newly created node
       for(int j = 0; j < 3; ++j){
-        if(node1->config[i][j] == 0){
+        if(node1->config[i][j] == 0){ 
           node1->blankr = i;
           node1->blankc = j;
           return node1;
@@ -183,12 +185,9 @@ node* Make_Node(vector<vector<int>> start, int dep){
 };
 
 //MAKE QUEUE FUNCTION
-queue<node*> Make_Queue(node* start){
-    
+queue<node*> Make_Queue(node* start){//make a queue with given root node
     queue<node*> q;
-    
     q.push(start);
-
     return q;
 };
 
@@ -199,18 +198,18 @@ void generic_search(problem p1){
   repeat.push_back(p1.initial_state);
   
   while(1){ //loop of actual search
-    if(frontier.empty()){
+    if(frontier.empty()){ //failure condition
       printf("FAILURE, NO SOLUTION EXISTS\n");
       return;
     }
     
-    node* n = Make_Node(frontier.front()->config,frontier.front()->dp - 1); //copy potential expanded node and decrement its depth bc makenode adds one
+    node* n = Make_Node(frontier.front()->config,frontier.front()->dp - 1); //copy potential expanded node and decrease its depth bc makenode adds one by default
     if(frontier.size() > queue_sz){ //check the size of the queue to update the maximum size
       queue_sz = frontier.size();
     }
     frontier.pop(); //removes node at front of queue
 
-    if(p1.goal_state == n->config){
+    if(p1.goal_state == n->config){//goal state check
       printf("SOLUTION HAS BEEN FOUND with config: \n{%d,%d,%d},\n{%d,%d,%d},\n{%d,%d,%d}\n", n->config[0][0], n->config[0][1], n->config[0][2], n->config[1][0], n->config[1][1], n->config[1][2], n->config[2][0], n->config[2][1],n->config[2][2]);
       printf("Solution at depth: %d\n", n->dp);
       printf("Number of nodes expanded: %d\n", expand);
@@ -228,18 +227,87 @@ void generic_search(problem p1){
 
 int main(){
   
-  problem problem1;
+  problem problem1; //uncomment a problem state to test or create an additonal starting state
+  
+  char input = 'a';
+  char input1, input2, input3, input4, input5, input6, input7, input8, input9;
+  int num = 0;
+  vector<vector<int>> custom = {
+        {1,2,3},
+        {4,5,6},
+        {7,8,0}
+      };
+
+  printf("Welcome to my 8-puzzle solver Uniform Cost Search Edition, Type '1' to use a default puzzle, or type '2' to create your own:\n");
+  scanf("%c", &input);
+  
+  num = input - '0';
+
+
+  if(num == 1){
+    printf("You have chosen a default puzzle with solution at depth 8: ");
+      problem1.initial_state =  {
+        {1,3,6},
+        {5,0,2},
+        {4,7,8}
+      };
+  }
+
+  else if(num == 2){
+    printf("You have chosen a custom puzzle.\n");
+    
+    printf("Please enter a valid number for row 1 column 1:\n");
+    cin >> input1;
+    custom.at(0).at(0) = input1 - '0';
+
+    printf("Please enter a valid number for row 1 column 2:\n");
+    cin >> input2;
+    custom.at(0).at(1) = input2 - '0';
+
+    printf("Please enter a valid number for row 1 column 3:\n");
+    cin >> input3;
+    custom.at(0).at(2) = input3 - '0';
+    
+    printf("Please enter a valid number for row 2 column 1:\n");
+    cin >> input4;
+    custom.at(1).at(0) = input4 - '0';
+    
+    printf("Please enter a valid number for row 2 column 2:\n");
+    cin >> input5;
+    custom.at(1).at(1) = input5 - '0';
+
+    printf("Please enter a valid number for row 2 column 3:\n");
+    cin >> input6;
+    custom.at(1).at(2) = input6 - '0';
+
+    printf("Please enter a valid number for row 3 column 1:\n");
+    cin >> input7;
+    custom.at(2).at(0) = input7 - '0';
+
+    printf("Please enter a valid number for row 3 column 2:\n");
+    cin >> input8;
+    custom.at(2).at(1) = input8 - '0';
+
+    printf("Please enter a valid number for row 3 column 3:\n");
+    cin >> input9;
+    custom.at(2).at(2) = input9 - '0';
+
+  }
+
+  problem1.initial_state =  custom;
+  
+
   // problem1.initial_state =  {
   //   {1,2,3},
   //   {4,5,6},
   //   {7,8,0}
   // };
 
- problem1.initial_state =  {
-    {1,2,3},
-    {4,5,6},
-    {0,7,8}
-  };
+//  problem1.initial_state =  {
+//     {1,2,3},
+//     {4,5,6},
+//     {0,7,8}
+//   };
 
 // problem1.initial_state =  {
 //     {1,2,3},
@@ -271,7 +339,7 @@ int main(){
 //     {6,3,0}
 //   };
 
-  generic_search(problem1);
+  generic_search(problem1); //call search alorithm
 
 
 
